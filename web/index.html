@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b1726">
+<title>코트사이드 코치</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Setup screen -->
+<section id="setup" class="setup">
+  <div class="setup-inner">
+    <header class="brand">
+      <svg class="ball" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="var(--ball)"/><path d="M6 12c10 4 14 14 10 30M42 12c-10 4-14 14-10 30" stroke="var(--court)" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg>
+      <div>
+        <h1>코트사이드 코치</h1>
+        <p class="sub">카메라로 스윙을 보고 바로 말로 알려주는 AI 코치</p>
+      </div>
+    </header>
+
+    <div class="block">
+      <h2>무엇을 연습할까요?</h2>
+      <div class="chips" id="strokeChips" role="radiogroup" aria-label="스트로크"></div>
+    </div>
+
+    <div class="block">
+      <h2>카메라 놓는 법</h2>
+      <svg class="court-diagram" viewBox="0 0 320 150" role="img" aria-label="플레이어 옆이나 뒤쪽 대각선 3~5미터에 휴대폰을 세워 두세요">
+        <rect x="4" y="4" width="312" height="142" rx="6" fill="var(--court-2)"/>
+        <rect x="80" y="14" width="228" height="122" fill="none" stroke="var(--line)" stroke-width="2"/>
+        <line x1="270" y1="8" x2="270" y2="142" stroke="var(--line)" stroke-width="3" stroke-dasharray="4 3"/>
+        <text x="262" y="30" text-anchor="end" class="dg-label">네트</text>
+        <circle cx="98" cy="72" r="9" fill="var(--ball)"/>
+        <text x="112" y="76" class="dg-label">나</text>
+        <path d="M150 112 L106 80" stroke="var(--ball)" stroke-width="1.5" stroke-dasharray="3 3"/>
+        <rect x="146" y="110" width="12" height="20" rx="2" fill="var(--fg)"/>
+        <text x="164" y="125" class="dg-label">폰 · 옆 3~5m</text>
+        <path d="M34 34 L90 64" stroke="var(--ball)" stroke-width="1.5" stroke-dasharray="3 3" opacity=".6"/>
+        <rect x="22" y="16" width="12" height="20" rx="2" fill="var(--fg)" opacity=".55"/>
+        <text x="12" y="52" class="dg-label dim">또는</text>
+        <text x="12" y="66" class="dg-label dim">뒤 대각선</text>
+      </svg>
+      <ul class="tips">
+        <li>삼각대나 펜스에 세워 <b>머리부터 발끝까지</b> 화면에 들어오게 하세요.</li>
+        <li>허리 높이, 옆이나 뒤쪽 45° 방향이 가장 잘 보여요.</li>
+        <li>라켓 대신 <b>손목·팔꿈치·어깨·무릎</b> 움직임으로 분석해요. 섀도 스윙도 됩니다.</li>
+      </ul>
+    </div>
+
+    <button id="startBtn" class="primary">코칭 시작</button>
+    <p class="fine">영상은 기기 밖으로 나가지 않아요. 인터넷 없이 동작합니다.</p>
+  </div>
+</section>
+
+<!-- Coaching screen -->
+<section id="coach" class="coach" hidden>
+  <div id="stage" class="stage">
+    <video id="video" playsinline muted></video>
+    <canvas id="overlay"></canvas>
+  </div>
+
+  <div class="topbar">
+    <button id="backBtn" class="icon-btn" aria-label="처음 화면으로">
+      <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="chips compact" id="strokeChips2" role="radiogroup" aria-label="스트로크"></div>
+    <button id="settingsBtn" class="icon-btn" aria-label="설정">
+      <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="16" cy="7" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="17" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </button>
+  </div>
+
+  <div class="status-row">
+    <span id="statusPill" class="pill">모델 준비 중…</span>
+    <span id="fps" class="pill dim">– fps</span>
+  </div>
+
+  <div class="meter" aria-hidden="true">
+    <div id="meterFill" class="meter-fill"></div>
+    <div id="meterThr" class="meter-thr"></div>
+    <span class="meter-label">스윙<br>속도</span>
+  </div>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <div class="sheet">
+    <div id="card" class="card empty">
+      <div class="card-head">
+        <div>
+          <div id="cardStroke" class="card-stroke">대기 중</div>
+          <div id="cardTip" class="card-tip">전신이 보이게 서서 스윙해 보세요.</div>
+        </div>
+        <div id="cardScore" class="score-ring" style="--p:0"><span>–</span></div>
+      </div>
+      <div id="metricList" class="metrics"></div>
+    </div>
+    <div class="session">
+      <span>스윙 <b id="swingCount">0</b></span>
+      <span>평균 <b id="avgScore">–</b></span>
+      <span id="lastNote" class="dim"></span>
+      <button id="historyBtn" class="text-btn">기록</button>
+    </div>
+  </div>
+
+  <!-- Settings drawer -->
+  <div id="settings" class="drawer" hidden>
+    <div class="drawer-panel" role="dialog" aria-label="설정">
+      <div class="drawer-head"><h2>설정</h2><button id="closeSettings" class="text-btn">닫기</button></div>
+      <label class="row"><span>주로 쓰는 손</span>
+        <select id="optHand"><option value="R">오른손</option><option value="L">왼손</option></select></label>
+      <label class="row"><span>백핸드</span>
+        <select id="optBackhand"><option value="two">양손</option><option value="one">한손</option></select></label>
+      <label class="row"><span>실력</span>
+        <select id="optLevel"><option value="beginner">입문</option><option value="intermediate">중급</option><option value="advanced">상급</option></select></label>
+      <label class="row col"><span>스윙 감지 민감도 <b id="sensVal"></b></span>
+        <input id="optSens" type="range" min="0.5" max="2" step="0.05">
+        <small>섀도 스윙이나 느린 스윙이 잡히지 않으면 올리세요. 화면 왼쪽 막대가 노란 선을 넘으면 스윙으로 인식해요.</small></label>
+      <label class="row"><span>음성 피드백</span><input id="optVoice" type="checkbox" class="switch"></label>
+      <label class="row"><span>점수도 읽어주기</span><input id="optSayScore" type="checkbox" class="switch"></label>
+      <label class="row"><span>카메라</span>
+        <select id="optCam"><option value="environment">후면</option><option value="user">전면 (거울 모드)</option></select></label>
+      <label class="row"><span>분석 모델</span>
+        <select id="optModel"><option value="full">정확도 우선</option><option value="lite">속도 우선</option></select></label>
+      <label class="row col"><span class="row-line"><span>처리 장치</span>
+        <select id="optDelegate"><option value="GPU">GPU (빠름)</option><option value="CPU">CPU (호환)</option></select></span>
+        <small>사람이 서 있는데도 스켈레톤이 안 그려지면 CPU로 바꿔 보세요.</small></label>
+      <button id="testVoice" class="secondary">음성 테스트</button>
+    </div>
+  </div>
+
+  <!-- History drawer -->
+  <div id="history" class="drawer" hidden>
+    <div class="drawer-panel" role="dialog" aria-label="이번 세션 기록">
+      <div class="drawer-head"><h2>이번 세션</h2><button id="closeHistory" class="text-btn">닫기</button></div>
+      <div id="historySummary" class="summary"></div>
+      <ol id="historyList" class="history-list"></ol>
+      <button id="exportBtn" class="primary export">스윙 데이터 내보내기</button>
+      <p id="exportNote" class="export-note">관절 움직임 수치만 저장돼요. 영상은 저장되지 않습니다. 이 파일을 Claude에게 보내면 내 스윙에 맞게 기준을 조정할 수 있어요.</p>
+      <button id="resetSession" class="secondary">기록 지우기</button>
+    </div>
+  </div>
+</section>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
